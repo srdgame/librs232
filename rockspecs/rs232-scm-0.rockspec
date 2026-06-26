@@ -2,13 +2,13 @@ package = "rs232"
 version = "scm-0"
 
 source = {
-  url = "https://github.com/srdgame/librs232/archive/master.zip",
+  url = "https://github.com/flozano/librs232/archive/master.zip",
   dir = "librs232-master",
 }
 
 description = {
   summary    = "Serial port communication library",
-  homepage   = "https://github.com/srdgame/librs232",
+  homepage   = "https://github.com/flozano/librs232",
   license    = "MIT/X11",
   maintainer = "Dirk Chang",
   detailed   = [[
@@ -18,7 +18,7 @@ description = {
 }
 
 dependencies = {
-  "lua >= 5.1, < 5.4"
+  "lua >= 5.1, <= 5.4"
 }
 
 external_dependencies = {

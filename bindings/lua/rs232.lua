@@ -187,7 +187,7 @@ function Port:open()
   if not ok then
     self._p:close()
 	self._p = nil
-    return nil, err
+    return nil, ret
   end
 
   return self, tostring(self._p)
@@ -294,9 +294,10 @@ function Port:device(...)
 end
 
 function Port:fd(...)
-  local ok, fd = F(self._p:fd(...))
-  if not ok then return nil, fd end
-  return fd
+  -- C rs232_fd() returns the bare file descriptor, NOT an (err, value) tuple.
+  -- Running it through F() misreads any nonzero fd as an RS232 error code and
+  -- yields nil -- which silently disables the cooperative (fd-poll) read path.
+  return self._p:fd(...)
 end
 
 local function check_val(value, NAMES, VALUES)
