@@ -10,7 +10,7 @@ AM_CFLAGS = $(all_includes) -I$(top_srcdir)/include -Wall -ansi -pedantic -W -Wm
 
 lib_LTLIBRARIES = librs232.la
 librs232_la_LDFLAGS = -Wc,-nostartfiles -version-info $(LIBVERSION)
-librs232_la_SOURCES = rs232.c rs232_posix.c
+librs232_la_SOURCES = rs232.c rs232_posix.c setspeed.c
 
 if ENABLE_DEBUG
 bin_PROGRAMS = rs232_test

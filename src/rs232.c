@@ -165,7 +165,7 @@ rs232_strbaud(unsigned int baud)
 	DBG("baud=%d\n", baud);
 
 	if (baud >= RS232_BAUD_MAX)
-		return NULL;
+		return "Non-Standard Baudrate";
 
 	return rs232_baud[baud];
 }

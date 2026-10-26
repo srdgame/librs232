@@ -45,6 +45,7 @@ build = {
         sources = {
           'src/rs232.c',
           'src/rs232_posix.c',
+          'src/setspeed.c',
           'bindings/lua/luars232.c',
         },
       }

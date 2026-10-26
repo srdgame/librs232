@@ -491,9 +491,13 @@ rs232_set_device(struct rs232_port_t *p, const char *device)
 	return;
 }
 
+int
+setspeed(int fd, int baudrate);
+
 unsigned int
 rs232_set_baud(struct rs232_port_t *p, enum rs232_baud_e baud)
 {
+	bool standard_baudrate = true;
 	struct termios term;
 	struct rs232_posix_t *ux = (struct rs232_posix_t *)p->pt;
 
@@ -574,21 +578,70 @@ rs232_set_baud(struct rs232_port_t *p, enum rs232_baud_e baud)
 		cfsetispeed(&term, B115200);
 		cfsetospeed(&term, B115200);
 		break;
+	case RS232_BAUD_230400:
+		cfsetispeed(&term, B230400);
+		cfsetospeed(&term, B230400);
+		break;
 	case RS232_BAUD_460800:
 		cfsetispeed(&term, B460800);
 		cfsetospeed(&term, B460800);
+		break;
+	case RS232_BAUD_500000:
+		cfsetispeed(&term, B500000);
+		cfsetospeed(&term, B500000);
+		break;
+	case RS232_BAUD_576000:
+		cfsetispeed(&term, B576000);
+		cfsetospeed(&term, B576000);
 		break;
 	case RS232_BAUD_921600:
 		cfsetispeed(&term, B921600);
 		cfsetospeed(&term, B921600);
 		break;
+	case RS232_BAUD_1000000:
+		cfsetispeed(&term, B1000000);
+		cfsetospeed(&term, B1000000);
+		break;
+	case RS232_BAUD_1152000:
+		cfsetispeed(&term, B1152000);
+		cfsetospeed(&term, B1152000);
+		break;
+	case RS232_BAUD_1500000:
+		cfsetispeed(&term, B1500000);
+		cfsetospeed(&term, B1500000);
+		break;
+	case RS232_BAUD_2000000:
+		cfsetispeed(&term, B2000000);
+		cfsetospeed(&term, B2000000);
+		break;
+	case RS232_BAUD_2500000:
+		cfsetispeed(&term, B2500000);
+		cfsetospeed(&term, B2500000);
+		break;
+	case RS232_BAUD_3000000:
+		cfsetispeed(&term, B3000000);
+		cfsetospeed(&term, B3000000);
+		break;
+	case RS232_BAUD_3500000:
+		cfsetispeed(&term, B3500000);
+		cfsetospeed(&term, B3500000);
+		break;
+	case RS232_BAUD_4000000:
+		cfsetispeed(&term, B4000000);
+		cfsetospeed(&term, B4000000);
+		break;
 	default:
-		return RS232_ERR_UNKNOWN;
+		standard_baudrate = false;
+		break;
 	}
 
 	SET_PORT_STATE(ux->fd, &term)
 	p->baud = baud;
 
+	if (!standard_baudrate) {
+		if (setspeed(ux->fd, baud) != 0)
+			return RS232_ERR_IOCTL;
+	}
 	return RS232_ERR_NOERROR;
 }
 
