@@ -179,6 +179,7 @@ rs232_read(struct rs232_port_t *p, unsigned char *buf, unsigned int buf_len,
 	   unsigned int *read_len)
 {
 	int r;
+	fd_set set;
 	struct rs232_posix_t *ux = (struct rs232_posix_t *)p->pt;
 
 	DBG("p=%p p->pt=%p buf_len=%d\n", (void *)p, p->pt, buf_len);
@@ -186,13 +187,36 @@ rs232_read(struct rs232_port_t *p, unsigned char *buf, unsigned int buf_len,
 	if (!rs232_port_open(p))
 		return RS232_ERR_PORT_CLOSED;
 
-	r = read(ux->fd, buf, buf_len);
-	if (r == -1) {
-		*read_len = 0;
-		DBG("errno: %d strerror: %s %s\n",
-		    errno, strerror(errno), "RS232_ERR_READ");
+	/* the tty is opened with VMIN=0/VTIME=0 (so read() never blocks),
+	 * keep the blocking read semantics by waiting on select() here and
+	 * retrying when read() returns 0 (data consumed by another opener
+	 * of the same tty between select() and read()) */
+	*read_len = 0;
+	for (;;) {
+		FD_ZERO(&set);
+		FD_SET(ux->fd, &set);
 
-		return RS232_ERR_READ;
+		r = select(ux->fd+1, &set, NULL, NULL, NULL);
+		if (r == -1) {
+			if (errno == EINTR)
+				continue;
+			DBG("%s\n", "RS232_ERR_SELECT");
+			return RS232_ERR_SELECT;
+		}
+
+		r = read(ux->fd, buf, buf_len);
+		if (r == -1) {
+			if (errno == EINTR)
+				continue;
+			DBG("errno: %d strerror: %s %s\n",
+			    errno, strerror(errno), "RS232_ERR_READ");
+
+			return RS232_ERR_READ;
+		}
+
+		if (r > 0)
+			break;
+		/* r == 0: no data available, go back waiting */
 	}
 
 	*read_len = r;
@@ -283,6 +307,11 @@ rs232_read_timeout_forced(struct rs232_port_t *p, unsigned char *buf,
 			return RS232_ERR_READ;
 		}
 
+		if (r == 0) {
+			DBG("%s\n", "RS232_ERR_TIMEOUT");
+			return RS232_ERR_TIMEOUT;
+		}
+
 		DBG("read_len=%d hex='%s' ascii='%s'\n", r,
 			rs232_hex_dump(buf, r),
 			rs232_ascii_dump(buf, r));
@@ -330,6 +359,11 @@ rs232_read_timeout(struct rs232_port_t *p, unsigned char *buf,
 			DBG("errno: %d strerror: %s %s\n",
 			    errno, strerror(errno), "RS232_ERR_READ");
 			return RS232_ERR_READ;
+		}
+
+		if (r == 0) {
+			DBG("%s\n", "RS232_ERR_TIMEOUT");
+			return RS232_ERR_TIMEOUT;
 		}
 
 		DBG("read_len=%d hex='%s' ascii='%s'\n", r,
@@ -462,6 +496,12 @@ rs232_open(struct rs232_port_t *p)
 	term.c_iflag = IGNPAR;
 	term.c_oflag = 0;
 	term.c_lflag = 0;
+	/* non-canonical mode: VMIN=0/VTIME=0 makes read() return immediately
+	 * with the bytes available (0 if none) instead of blocking forever.
+	 * This prevents an endless block when the data seen by select() was
+	 * consumed by another opener of the same tty before our read(). */
+	term.c_cc[VMIN]   = 0;
+	term.c_cc[VTIME]  = 0;
 	term.c_cc[VINTR]  = _POSIX_VDISABLE;
 	term.c_cc[VQUIT]  = _POSIX_VDISABLE;
 	term.c_cc[VSTART] = _POSIX_VDISABLE;
